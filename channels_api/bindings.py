@@ -21,7 +21,7 @@ class FakeRequest(object):
     def build_absolute_uri(self, url):
 
         site = Site.objects.get_current()
-        bits = urlsplit(location)
+        bits = urlsplit(url)
         if not (bits.scheme and bits.netloc):
 
             if settings.https:
@@ -32,9 +32,9 @@ class FakeRequest(object):
             uri = '{proto}://{domain}{url}'.format(
                 proto=proto,
                 domain=site.domain,
-                url=location)
+                url=url)
         else:
-            uri = location
+            uri = url
 
 class RequestBindingMixin(object):
 
