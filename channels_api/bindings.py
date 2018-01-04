@@ -12,6 +12,12 @@ from .mixins import SerializerMixin, SubscribeModelMixin, CreateModelMixin, Upda
     RetrieveModelMixin, ListModelMixin, DeleteModelMixin
 from .settings import api_settings
 
+class RequestBindingMixin(object):
+
+    from channels_api.permissions import IsAuthenticated
+
+    permission_classes = (IsAuthenticated,)
+
 
 class ResourceBindingMetaclass(BindingMetaclass):
     """
