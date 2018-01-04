@@ -26,6 +26,8 @@ class RequestBindingMixin(object):
 
     def get_serializer_context(self):
 
+        import pdb; pdb.set_trace()
+
         context = super().get_serializer_context()
 
         context['request': FakeRequest()]
