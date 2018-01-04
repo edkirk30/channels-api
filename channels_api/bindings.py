@@ -14,6 +14,7 @@ from .settings import api_settings
 
 from django.contrib.sites.models import Site
 from django.conf import settings
+from django.utils.six.moves.urllib.parse import urlsplit
 
 class FakeRequest(object):
 
