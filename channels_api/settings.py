@@ -5,7 +5,7 @@ from rest_framework.settings import APISettings
 DEFAULTS = {
     'DEFAULT_PAGE_SIZE': 25,
     'DEFAULT_PERMISSION_CLASSES': (
-        'channels_api.permissions.AllowAny',
+        'channels_api.permissions.IsAdmin',
     )
 }
 IMPORT_STRINGS = (
