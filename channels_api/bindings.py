@@ -12,9 +12,28 @@ from .mixins import SerializerMixin, SubscribeModelMixin, CreateModelMixin, Upda
     RetrieveModelMixin, ListModelMixin, DeleteModelMixin
 from .settings import api_settings
 
+from django.contrib.sites.models import Site
+from django.conf import settings
+
 class FakeRequest(object):
 
-    pass
+    def build_absolute_uri(self, url):
+
+        site = Site.objects.get_current()
+        bits = urlsplit(location)
+        if not (bits.scheme and bits.netloc):
+
+            if settings.https:
+                proto = 'https'
+            else:
+                proto = 'http'
+
+            uri = '{proto}://{domain}{url}'.format(
+                proto=proto,
+                domain=site.domain,
+                url=location)
+        else:
+            uri = location
 
 class RequestBindingMixin(object):
 
