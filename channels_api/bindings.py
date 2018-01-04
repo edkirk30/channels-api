@@ -12,11 +12,26 @@ from .mixins import SerializerMixin, SubscribeModelMixin, CreateModelMixin, Upda
     RetrieveModelMixin, ListModelMixin, DeleteModelMixin
 from .settings import api_settings
 
+class FakeRequest(object):
+
+    pass
+
 class RequestBindingMixin(object):
 
     from channels_api.permissions import IsAuthenticated
 
+    #FIXME root or remove? 
     permission_classes = (IsAuthenticated,)
+
+
+    def get_serializer_context(self):
+
+        context = super().get_serializer_context()
+
+        context['request': FakeRequest()]
+
+        return context
+
 
 
 class ResourceBindingMetaclass(BindingMetaclass):
