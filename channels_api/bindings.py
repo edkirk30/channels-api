@@ -24,7 +24,7 @@ class FakeRequest(object):
         bits = urlsplit(url)
         if not (bits.scheme and bits.netloc):
 
-            if settings.https:
+            if settings.HTTPS:
                 proto = 'https'
             else:
                 proto = 'http'
