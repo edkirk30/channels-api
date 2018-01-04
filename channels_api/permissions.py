@@ -21,7 +21,5 @@ class IsAdmin(BasePermission):
 
     def has_permission(self, user, action, pk):
 
-        import pdb; pdb.set_trace()
-
-        return user.is_super
+        return user.is_superuser
 
