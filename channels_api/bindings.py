@@ -18,6 +18,8 @@ from django.utils.six.moves.urllib.parse import urlsplit
 
 class FakeRequest(object):
 
+    GET = []
+
     def build_absolute_uri(self, url):
 
         site = Site.objects.get_current()
