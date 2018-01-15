@@ -40,6 +40,8 @@ class FakeRequest(object):
         else:
             uri = url
 
+        return uri
+
 class RequestBindingMixin(object):
 
     from channels_api.permissions import IsAuthenticated
