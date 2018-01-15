@@ -22,8 +22,6 @@ class FakeRequest(object):
 
     def build_absolute_uri(self, url):
 
-        import pdb; pdb.set_trace()
-
         site = Site.objects.get_current()
         bits = urlsplit(url)
         if not (bits.scheme and bits.netloc):
@@ -48,7 +46,6 @@ class RequestBindingMixin(object):
 
     def get_serializer_context(self):
 
-        import pdb; pdb.set_trace()
         context = super().get_serializer_context()
 
         context['request'] = FakeRequest()
