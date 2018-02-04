@@ -26,18 +26,51 @@ class RetrieveModelMixin(object):
         serializer = self.get_serializer(instance)
         return serializer.data, 200
 
-
+#FIXME TEMP only
 class ListModelMixin(object):
 
     @list_action()
     def list(self, data, **kwargs):
+
         if not data:
             data = {}
-        queryset = self.filter_queryset(self.get_queryset())
+
+        raw_queryset = self.get_queryset()
+
+        data_filter = self.get_filter(data.get('filter', ''),
+                                      queryset=raw_queryset)
+
+
+        if data_filter:
+            queryset = self.filter_queryset(data_filter).qs
+        else:
+            queryset = raw_queryset
+
+        if not queryset:
+            return {'count': 0,
+                    'num_pages': 0,
+                    'objects': []}, 200
+
         paginator = Paginator(queryset, api_settings.DEFAULT_PAGE_SIZE)
-        data = paginator.page(data.get('page', 1))
-        serializer = self.get_serializer(data, many=True)
-        return serializer.data, 200
+        pagination_data = paginator.page(data.get('page', 1))
+
+#FIXME include page value in list return
+
+        serializer = self.get_serializer(pagination_data, many=True)
+
+        if not pagination_data.has_next():
+            next_page = None
+        else:
+            next_page = pagination_data.next_page_number()
+
+        return_data = {
+            'count': paginator.count,
+            'num_pages': paginator.num_pages,
+            'objects': serializer.data,
+            'next_page': next_page
+        }
+
+        return return_data, 200
 
 
 class UpdateModelMixin(object):
@@ -82,6 +115,20 @@ class SerializerMixin(object):
     """Mixin class that handles the loading of the serializer class, context and object."""
 
     serializer_class = None
+    filter_class = None
+
+    def get_filter(self, *args, **kwargs):
+        filter_class = self.get_filter_class()
+        if not filter_class:
+            return None
+
+        return filter_class(*args, **kwargs)
+
+    def get_filter_class(self, *args, **kwargs):
+        return self.filter_class
+
+    def get_filter_context(self):
+        return {}
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
