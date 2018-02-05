@@ -37,7 +37,9 @@ class ListModelMixin(object):
 
         raw_queryset = self.get_queryset()
 
-        data_filter = self.get_filter(data.get('filter', ''),
+        filter_arguments = data.get('filters', {})
+
+        data_filter = self.get_filter(filter_arguments,
                                       queryset=raw_queryset)
 
 
@@ -49,6 +51,7 @@ class ListModelMixin(object):
         if not queryset:
             return {'count': 0,
                     'num_pages': 0,
+                    'filters': filter_arguments,
                     'objects': []}, 200
 
         paginator = Paginator(queryset, api_settings.DEFAULT_PAGE_SIZE)
@@ -67,6 +70,7 @@ class ListModelMixin(object):
             'count': paginator.count,
             'num_pages': paginator.num_pages,
             'objects': serializer.data,
+            'filters': filter_arguments,
             'next_page': next_page
         }
 
