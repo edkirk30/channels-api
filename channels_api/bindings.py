@@ -2,6 +2,7 @@ import json
 
 from channels.binding import websockets
 from channels.binding.base import CREATE, UPDATE, DELETE, BindingMetaclass
+from channels.channel import Group
 from django.http import Http404
 from django.utils import six
 
@@ -70,7 +71,6 @@ class ResourceBindingMetaclass(BindingMetaclass):
 
         return binding
 
-
 @six.add_metaclass(ResourceBindingMetaclass)
 class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
 
@@ -90,6 +90,15 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
         data = body.get('data', None)
         return action, pk, data
 
+    def serialize(self, instance, action):
+        payload = super(ResourceBindingBase, self).serialize(instance, action)
+
+        if hasattr(instance, '_channels_changes'):
+            payload['changes'] = instance._channels_changes
+            payload['previous_values'] = instance._channels_previous_values
+
+        return payload
+
     @classmethod
     def pre_change_receiver(cls, instance, action):
         """
@@ -100,6 +109,24 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
         else:
             group_names = set(cls.group_names(instance, action))
 
+        #Record changes
+        changes = []
+        old_values = {}
+
+        try:
+            original_instance = cls.model.objects.get(id=instance.id)
+
+            for attr in original_instance._meta.get_fields():
+                if getattr(original_instance, attr.name) \
+                   != getattr(instance, attr.name):
+                    changes.append(attr.name)
+                    old_values[attr.name] = getattr(original_instance, attr.name)
+
+            instance._channels_changes = changes
+            instance._channels_previous_values = old_values
+        except instance.__class__.DoesNotExist:
+            pass
+
         if not hasattr(instance, '_binding_group_names'):
             instance._binding_group_names = {}
         instance._binding_group_names[cls] = group_names
@@ -109,6 +136,7 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
         """
         Triggers the binding to possibly send to its group.
         """
+
         old_group_names = instance._binding_group_names[cls]
         if action == DELETE:
             new_group_names = set()
@@ -124,26 +152,73 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
         self.send_messages(instance, old_group_names & new_group_names, UPDATE, **kwargs)
         self.send_messages(instance, new_group_names - old_group_names, CREATE, **kwargs)
 
+#    def send_messages(self, instance, group_names, action, **kwargs):
+#        """
+#        Serializes the instance and sends it to all provided group names.
+#        """
+#        if not group_names:
+#            return  # no need to serialize, bail.
+#        self.signal_kwargs = kwargs
+#        payload = self.serialize(instance, action)
+#        if payload == {}:
+#            return  # nothing to send, bail.
+#
+#        assert self.stream is not None
+#        message = self.encode(self.stream, payload)
+#        for group_name in group_names:
+#            group = Group(group_name)
+#            group.send(message)
+
     @classmethod
     def group_names(cls, instance, action):
         self = cls()
-        groups = [self._group_name(action)]
+
+        groups = [self.group_name(action)]
         if instance.pk:
-            groups.append(self._group_name(action, id=instance.pk))
+            groups.append(self.group_name(action, id=instance.pk))
+
+        if hasattr(self, 'interested_users'):
+            for user in self.interested_users(instance, action):
+                groups.append(self.group_name(action, user=user))
+                if instance.pk:
+                    groups.append(self.group_name(action,
+                                                    id=instance.pk, user=user))
+
         return groups
 
-    def _group_name(self, action, id=None):
+    def group_name(self, action, id=None, user=None):
         """Formatting helper for group names."""
+        if user:
+            return "{}-{}-{}-{}".format(self.model_label, action, id,
+                                        user.username)
         if id:
             return "{}-{}-{}".format(self.model_label, action, id)
         else:
             return "{}-{}".format(self.model_label, action)
 
-    def has_permission(self, user, action, pk):
+    def get_permission_classes(self):
+
         if self.permission_classes:
             permissions = self.permission_classes
         else:
             permissions = api_settings.DEFAULT_PERMISSION_CLASSES
+
+        return permissions
+
+    def has_subscribe_all_permissions(self, user, action):
+
+        permissions = self.get_permission_classes()
+
+        for cls in permissions:
+            if not cls().has_subscribe_all_permissions(user, action):
+                return False
+
+        return bool(permissions)
+
+#FIXME change name
+    def has_permission(self, user, action, pk):
+
+        permissions = self.get_permission_classes()
 
         for cls in permissions:
             if not cls().has_permission(user, action, pk):

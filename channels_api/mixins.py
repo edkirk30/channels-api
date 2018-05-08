@@ -38,6 +38,7 @@ class ListModelMixin(object):
         raw_queryset = self.get_queryset()
 
         filter_arguments = data.get('filters', {})
+        page_size = data.get('page_size', api_settings.DEFAULT_PAGE_SIZE)
 
         data_filter = self.get_filter(filter_arguments,
                                       queryset=raw_queryset)
@@ -54,7 +55,7 @@ class ListModelMixin(object):
                     'filters': filter_arguments,
                     'objects': []}, 200
 
-        paginator = Paginator(queryset, api_settings.DEFAULT_PAGE_SIZE)
+        paginator = Paginator(queryset, page_size)
         pagination_data = paginator.page(data.get('page', 1))
 
 #FIXME include page value in list return
@@ -110,10 +111,15 @@ class SubscribeModelMixin(object):
         if 'action' not in data:
             raise ValidationError('action required')
         action = data['action']
-        group_name = self._group_name(action, id=pk)
-        Group(group_name).add(self.message.reply_channel)
-        return {'action': action}, 200
 
+        if self.has_subscribe_all_permissions(self.user, action):
+            group_name = self.group_name(action, id=pk)
+            Group(group_name).add(self.message.reply_channel)
+
+        Group(self.group_name(action, user=self.user)).\
+                add(self.message.reply_channel)
+
+        return {'action': action}, 200
 
 class SerializerMixin(object):
     """Mixin class that handles the loading of the serializer class, context and object."""
