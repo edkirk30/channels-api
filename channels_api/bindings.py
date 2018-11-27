@@ -92,10 +92,12 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
 
     def serialize(self, instance, action):
         payload = super(ResourceBindingBase, self).serialize(instance, action)
-
-        if hasattr(instance, '_channels_changes'):
-            payload['changes'] = instance._channels_changes
-            payload['previous_values'] = instance._channels_previous_values
+        
+        #FIXME This was causing problems with django objects as the changes not
+        #being serialised
+       # if hasattr(instance, '_channels_changes'):
+       #     payload['changes'] = instance._channels_changes
+       #     payload['previous_values'] = instance._channels_previous_values
 
         return payload
 
@@ -117,10 +119,16 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
             original_instance = cls.model.objects.get(id=instance.id)
 
             for attr in original_instance._meta.get_fields():
-                if getattr(original_instance, attr.name) \
-                   != getattr(instance, attr.name):
-                    changes.append(attr.name)
-                    old_values[attr.name] = getattr(original_instance, attr.name)
+                #FIXME better method?
+                try:
+                    if hasattr(instance, attr.name) and \
+                        getattr(original_instance, attr.name) \
+                       != getattr(instance, attr.name):
+
+                        changes.append(attr.name)
+                        old_values[attr.name] = getattr(original_instance, attr.name)
+                except AttributeError:
+                    pass
 
             instance._channels_changes = changes
             instance._channels_previous_values = old_values
