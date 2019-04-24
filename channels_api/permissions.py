@@ -22,6 +22,14 @@ class IsAuthenticated(BasePermission):
     def has_permission(self, user, action, pk):
         return user.pk and user.is_authenticated
 
+class IsAuthenticatedAllowAll(BasePermission):
+
+    def has_subscribe_all_permissions(self, user, action):
+        return user.pk and user.is_authenticated
+
+    def has_permission(self, user, action, pk):
+        return user.pk and user.is_authenticated
+
 class IsAdmin(BasePermission):
 
     def has_subscribe_all_permissions(self, user, action):
