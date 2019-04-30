@@ -21,6 +21,9 @@ class FakeRequest(object):
 
     GET = []
 
+    def __init__(self, user=None):
+        self.user = user
+
     def build_absolute_uri(self, url):
 
         site = Site.objects.get_current()
@@ -48,7 +51,7 @@ class RequestBindingMixin(object):
     def get_serializer_context(self):
 
         context = super().get_serializer_context()
-        context['request'] = FakeRequest()
+        context['request'] = FakeRequest(self.user)
 
         return context
 
