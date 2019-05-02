@@ -38,3 +38,5 @@ class IsAdmin(BasePermission):
     def has_permission(self, user, action, pk):
         return user.is_superuser
 
+class IsAdminUser(IsAdmin):
+    pass
